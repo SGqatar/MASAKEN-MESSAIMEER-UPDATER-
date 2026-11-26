@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b0e14" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>The Updater — Masaken Mesaimeer</title>
+  <link rel="manifest" id="pwa-manifest" />
+  <style>
+    :root {
+      --bg: #0b0e14;
+      --surface: #131720;
+      --surface-2: #1a202c;
+      --surface-3: #222938;
+      --border: #2a3242;
+      --text: #f3f6fa;
+      --muted: #9aa5b8;
+      --accent: #2f5ce6;
+      --accent-hover: #3b69f5;
+      --green: #167c49;
+      --green-soft: rgba(22, 124, 73, 0.22);
+      --green-text: #4ade80;
+      --amber: #b45309;
+      --amber-soft: rgba(245, 158, 11, 0.16);
+      --amber-text: #fbbf24;
+      --red: #991b1b;
+      --red-soft: rgba(239, 68, 68, 0.16);
+      --red-text: #f87171;
+      --purple: #5b21b6;
+      --purple-soft: rgba(139, 92, 246, 0.18);
+      --purple-text: #c4b5fd;
+      --radius: 18px;
+      --radius-sm: 12px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      margin: 0; padding: 14px; background: var(--bg); color: var(--text);
+      font-family: var(--font); font-size: 15px; line-height: 1.45;
+    }
+
+    .app {
+      max-width: 540px; margin: 0 auto; display: flex; flex-direction: column;
+      gap: 14px; padding-bottom: 36px;
+    }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+      transition: transform 0.18s ease, border-color 0.18s ease;
+    }
+
+    .card-header-row {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+    }
+
+    .title { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+    .subtitle { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px;
+      border-radius: 999px; font-size: 12px; font-weight: 600;
+      background: var(--surface-2); border: 1px solid var(--border);
+      color: var(--muted); white-space: nowrap;
+    }
+    .pill.live { color: var(--green-text); border-color: rgba(74, 222, 128, 0.35); background: var(--green-soft); }
+
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pulse 2.2s infinite ease-in-out; }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(0.8); } }
+
+    .top-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+
+    button {
+      font-family: var(--font); font-size: 15px; font-weight: 600;
+      border: 1px solid transparent; border-radius: var(--radius-sm);
+      padding: 13px 14px; cursor: pointer; color: var(--text); background: var(--surface-2);
+      transition: transform 0.12s ease, background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    button:active { transform: scale(0.97); }
+
+    .btn-sync { background: var(--accent); border-color: rgba(255, 255, 255, 0.08); }
+    .btn-sync:hover { background: var(--accent-hover); }
+    .btn-update { background: var(--green); border-color: rgba(255, 255, 255, 0.08); }
+    .btn-update:hover { background: #1b9458; }
+    .btn-secondary { background: var(--surface-2); border-color: var(--border); font-size: 14px; padding: 11px 12px; }
+    .btn-secondary:hover { background: var(--surface-3); }
+    .btn-purple { background: var(--purple-soft); border-color: rgba(196, 181, 253, 0.35); color: var(--purple-text); font-size: 13px; padding: 9px 12px; }
+    .btn-green-soft { background: var(--green); color: #ffffff; font-size: 13px; padding: 9px 12px; }
+    .btn-danger-ghost { background: transparent; border-color: transparent; color: var(--muted); font-size: 13px; padding: 9px 10px; }
+    .btn-danger-ghost:hover { color: var(--red-text); background: var(--red-soft); }
+
+    .helper-box {
+      margin-top: 14px; padding: 13px 14px; border-radius: var(--radius-sm);
+      background: var(--surface-2); border: 1px solid var(--border);
+      font-size: 13.5px; color: var(--muted);
+    }
+    .helper-box strong { color: var(--text); }
+    .helper-box p { margin: 0; }
+    .helper-box p + p { margin-top: 8px; }
+
+    .status-bar {
+      margin-top: 12px; display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; font-size: 12.5px; color: var(--muted); min-height: 20px;
+    }
+    .status-flash { color: var(--green-text); font-weight: 600; }
+
+    .kpi-label { color: var(--muted); font-size: 14px; font-weight: 600; }
+    .kpi-number {
+      font-size: 38px; font-weight: 800; line-height: 1.1; margin: 8px 0 6px;
+      color: var(--purple-text); transition: transform 0.2s ease;
+    }
+    .bump { transform: scale(1.08); }
+    .kpi-sub { color: var(--muted); font-size: 13.5px; }
+
+    .visitor-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+    .visitor-date { font-size: 16px; font-weight: 700; }
+    .visitor-tag {
+      padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700;
+      background: var(--green-soft); color: var(--green-text); border: 1px solid rgba(74, 222, 128, 0.3);
+    }
+    .visitor-tag.neutral { background: var(--surface-2); color: var(--muted); border-color: var(--border); }
+    .visitor-count { font-size: 18px; font-weight: 700; color: var(--green-text); margin-bottom: 14px; }
+    .visitor-count.neutral { color: var(--text); }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .section-title { margin: 0; font-size: 18px; font-weight: 700; }
+    .section-desc { margin: 4px 0 0; font-size: 13.5px; color: var(--muted); }
+
+    .filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .filter-chip {
+      padding: 7px 13px; border-radius: 999px; font-size: 13px; font-weight: 600;
+      background: var(--surface-2); border: 1px solid var(--border); color: var(--muted);
+    }
+    .filter-chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+    .items-list { margin-top: 14px; display: flex; flex-direction: column; gap: 12px; }
+
+    .entry-card {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 15px; animation: fadeSlide 0.22s ease;
+    }
+    @keyframes fadeSlide { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .entry-card.open-item {
+      border-color: rgba(248, 113, 113, 0.35);
+      background: linear-gradient(180deg, rgba(127, 29, 29, 0.14) 0%, var(--surface-2) 100%);
+    }
+
+    .entry-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+
+    .badge {
+      display: inline-flex; align-items: center; padding: 4px 10px;
+      border-radius: 999px; font-size: 12px; font-weight: 700;
+    }
+    .badge-open { background: var(--red-soft); color: var(--red-text); border: 1px solid rgba(248, 113, 113, 0.35); }
+    .badge-returned { background: var(--green-soft); color: var(--green-text); border: 1px solid rgba(74, 222, 128, 0.35); }
+    .badge-ready { background: var(--purple-soft); color: var(--purple-text); border: 1px solid rgba(196, 181, 253, 0.35); }
+
+    .entry-meta { margin-top: 10px; font-size: 13px; color: var(--muted); }
+    .entry-heading { margin: 6px 0 0; font-size: 17px; font-weight: 700; }
+    .entry-note { margin: 6px 0 0; font-size: 13.5px; color: var(--muted); }
+    .entry-actions { margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+    .form-grid { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field.full { grid-column: 1 / -1; }
+
+    label { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+
+    input, select, textarea {
+      width: 100%; background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 11px 12px; color: var(--text);
+      font-family: var(--font); font-size: 14px;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent-hover); }
+
+    .quick-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .mini-chip {
+      padding: 5px 10px; font-size: 12px; border-radius: 999px;
+      background: var(--surface-2); border: 1px solid var(--border); color: var(--muted);
+    }
+    .mini-chip:hover { color: var(--text); border-color: var(--accent-hover); }
+
+    .summary-box {
+      margin-top: 12px; width: 100%; min-height: 128px;
+      resize: vertical; font-size: 13px; line-height: 1.45;
+    }
+
+    .empty-state { text-align: center; padding: 24px 12px; color: var(--muted); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Top Sync & Update Card -->
+    <section class="card" aria-label="Sync and Update Controls">
+      <div class="card-header-row">
+        <div>
+          <h1 class="title">The Updater — Masaken Mesaimeer</h1>
+          <p class="subtitle" id="env-subtitle">Waseef Property Management · 25/11/2026</p>
+        </div>
+        <span class="pill live" id="live-clock"><span class="dot"></span>19:16</span>
+      </div>
+
+      <div class="top-actions">
+        <button type="button" class="btn-sync" id="btn-sync" onclick="handleSync()">
+          <span>↻</span> Sync
+        </button>
+        <button type="button" class="btn-update" id="btn-update" onclick="handleUpdate()">
+          <span>↓</span> Update
+        </button>
+      </div>
+
+      <div class="helper-box">
+        <p><strong>Sync</strong> builds a clean plain-text summary of your current list and copies it so you and the conversation stay aligned as one.</p>
+        <p><strong>Update</strong> refreshes the live display and saves your entries immediately to this device so nothing is lost.</p>
+      </div>
+
+      <div class="status-bar">
+        <span id="sync-status">Ready · Pending evening register confirmation</span>
+        <span id="status-flash" class="status-flash"></span>
+      </div>
+    </section>
+
+    <!-- Ready for Evening Counter -->
+    <section class="card" aria-label="Ready for Evening">
+      <div class="kpi-label">Ready for Evening</div>
+      <div class="kpi-number" id="ready-count">1</div>
+      <div class="kpi-sub" id="ready-sub">Queued for register check · 1 open key out</div>
+    </section>
+
+    <!-- Today Visitor Tally -->
+    <section class="card" aria-label="25-Nov-26 Visitors">
+      <div class="visitor-row">
+        <span class="visitor-date">25-Nov-26</span>
+        <span class="visitor-tag" id="tag-25">M-D18-41</span>
+      </div>
+      <div class="visitor-count" id="count-25">3 visitors · 1 viewing</div>
+      <div class="two-col">
+        <button type="button" class="btn-secondary" onclick="bumpVisitor('25-Nov-26', 'visitors')">+1 Visitor</button>
+        <button type="button" class="btn-secondary" onclick="bumpVisitor('25-Nov-26', 'viewings')">+1 Viewing</button>
+      </div>
+    </section>
+
+    <!-- Previous Day Visitor Tally -->
+    <section class="card" aria-label="24-Nov-26 Visitors">
+      <div class="visitor-row">
+        <span class="visitor-date">24-Nov-26</span>
+        <span class="visitor-tag neutral">PM Log</span>
+      </div>
+      <div class="visitor-count neutral" id="count-24">1 visitor · 0 viewings</div>
+      <div class="two-col">
+        <button type="button" class="btn-secondary" onclick="bumpVisitor('24-Nov-26', 'visitors')">+1 Visitor</button>
+        <button type="button" class="btn-secondary" onclick="bumpVisitor('24-Nov-26', 'viewings')">+1 Viewing</button>
+      </div>
+    </section>
+
+    <!-- Today's Side Keys & Notes -->
+    <section class="card" aria-label="Today's Side Keys and Notes">
+      <h2 class="section-title">Today's Side Keys &amp; Notes (25/11/2026)</h2>
+      <p class="section-desc">Live daytime movements &amp; ticked side notes before evening register update.</p>
+
+      <div class="filter-row" role="tablist" aria-label="Filter entries">
+        <button type="button" class="filter-chip active" data-filter="all" onclick="setFilter('all', this)">All</button>
+        <button type="button" class="filter-chip" data-filter="open" onclick="setFilter('open', this)">Open</button>
+        <button type="button" class="filter-chip" data-filter="returned" onclick="setFilter('returned', this)">Returned</button>
+        <button type="button" class="filter-chip" data-filter="ready" onclick="setFilter('ready', this)">Ready</button>
+      </div>
+
+      <div class="items-list" id="items-list"></div>
+    </section>
+
+    <!-- Add Key Movement Form -->
+    <section class="card" aria-label="Add Key Movement or Note">
+      <h2 class="section-title">Add a Key Movement or Side Note</h2>
+      <p class="section-desc">Simple fields — no code or formatting needed. Saved straight to Today's list.</p>
+
+      <div class="quick-chips">
+        <button type="button" class="mini-chip" onclick="applyQuickPreset('Charles', 'Mansu', 1)">Charles → Mansu (1 Key)</button>
+        <button type="button" class="mini-chip" onclick="applyQuickPreset('Charles', 'Israel', 1)">Charles → Israel (1 Key)</button>
+        <button type="button" class="mini-chip" onclick="applyQuickPreset('Charles', 'Visitor / Viewing', 1)">Visitor / Viewing</button>
+      </div>
+
+      <form id="entry-form" class="form-grid" onsubmit="handleAddEntry(event)">
+        <div class="field">
+          <label for="f-unit">Unit or Side Note Title</label>
+          <input id="f-unit" type="text" placeholder="e.g. B1-12 or Court Check" required />
+        </div>
+        <div class="field">
+          <label for="f-keys">Number of Keys</label>
+          <input id="f-keys" type="number" min="0" max="50" value="1" />
+        </div>
+        <div class="field">
+          <label for="f-issued-by">Issued By</label>
+          <input id="f-issued-by" type="text" value="Charles" />
+        </div>
+        <div class="field">
+          <label for="f-issued-to">To / With</label>
+          <input id="f-issued-to" type="text" placeholder="e.g. Mansu or Israel" />
+        </div>
+        <div class="field">
+          <label for="f-time">Time</label>
+          <input id="f-time" type="text" value="19:16" />
+        </div>
+        <div class="field">
+          <label for="f-status">Status</label>
+          <select id="f-status">
+            <option value="open">Open (Not Returned)</option>
+            <option value="returned">Returned</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label for="f-note">Note (Optional)</label>
+          <input id="f-note" type="text" placeholder="Short note for evening register check..." />
+        </div>
+        <div class="field full">
+          <button type="submit" class="btn-sync">+ Add to Today's List</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- CHAT SYNC -->
+    <section class="card" aria-label="Chat Sync">
+      <div class="card-header-row">
+        <div>
+          <h2 class="section-title">Chat Sync</h2>
+          <p class="section-desc">Paste a delta block from the conversation, then tap Apply. Only changes are merged — nothing is overwritten.</p>
+        </div>
+        <span class="pill" id="chat-sync-pill">Δ</span>
+      </div>
+
+      <textarea id="chat-sync-input" class="summary-box" spellcheck="false"
+        placeholder="# batch: 2026-11-25-mansu-b1-12
+OUT B1-12 1 Charles Mansu 19:15"></textarea>
+
+      <div class="entry-actions">
+        <button type="button" class="btn-sync" onclick="handleChatSync(false)">Apply to Updater</button>
+        <button type="button" class="btn-secondary" onclick="handleChatSync(true)">Re-apply (force)</button>
+        <button type="button" class="btn-danger-ghost" onclick="document.getElementById('chat-sync-input').value=''; document.getElementById('chat-sync-log').textContent='No block applied yet.';">Clear</button>
+      </div>
+
+      <div class="helper-box">
+        <p><strong>Commands:</strong> OUT · RET · REOPEN · READY · UNREADY · DEL · NOTE · VIS · VISITOR · VIEWING</p>
+        <p id="chat-sync-log">No block applied yet.</p>
+      </div>
+    </section>
+
+    <!-- Plain-Text Summary -->
+    <section class="card" aria-label="Chat and Evening Summary">
+      <div class="card-header-row">
+        <div>
+          <h2 class="section-title">Chat &amp; Evening Summary</h2>
+          <p class="section-desc">Tap Sync above or Copy below to share your current list here.</p>
+        </div>
+        <button type="button" class="btn-secondary" onclick="copySummary()">Copy</button>
+      </div>
+      <textarea id="summary-text" class="summary-box" readonly></textarea>
+    </section>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "masaken_updater_v5_state";
+
+    const DEFAULT_STATE = {
+      activeDate: "25/11/2026",
+      lastSyncedAt: "18:57",
+      lastUpdatedAt: "19:16",
+      filter: "all",
+      visitors: {
+        "25-Nov-26": { label: "25-Nov-26", tag: "M-D18-41", visitors: 3, viewings: 1 },
+        "24-Nov-26": { label: "24-Nov-26", tag: "PM Log", visitors: 1, viewings: 0 }
+      },
+      items: [
+        {
+          id: "key-a4-16-251126",
+          date: "25/11/2026",
+          time: "16:36",
+          unit: "A4-16",
+          keys: 1,
+          issuedBy: "Charles",
+          issuedTo: "Israel",
+          returned: false,
+          returnedAt: "",
+          readyForEvening: true,
+          note: "Issued by Charles to Israel at 16:36 (25/11/26). Queued for evening registry check."
+        }
+      ]
+    };
+
+    let state = loadState();
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return {
+            ...DEFAULT_STATE,
+            ...parsed,
+            visitors: { ...DEFAULT_STATE.visitors, ...(parsed.visitors || {}) },
+            items: Array.isArray(parsed.items) ? parsed.items : DEFAULT_STATE.items
+          };
+        }
+      } catch (err) {}
+      return JSON.parse(JSON.stringify(DEFAULT_STATE));
+    }
+
+    function saveState() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (err) {}
+    }
+
+    function nowTimeString() {
+      const d = new Date();
+      return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+    }
+
+    function flashMessage(msg) {
+      const el = document.getElementById("status-flash");
+      if (!el) return;
+      el.textContent = msg;
+      clearTimeout(flashMessage._timer);
+      flashMessage._timer = setTimeout(() => { el.textContent = ""; }, 2600);
+    }
+
+    function buildPlainSummary() {
+      const v25 = state.visitors["25-Nov-26"];
+      const v24 = state.visitors["24-Nov-26"];
+      const lines = [
+        `Masaken Mesaimeer — Updater Summary (${state.activeDate})`,
+        `Visitors 25-Nov-26 [M-D18-41]: ${v25.visitors} visitors · ${v25.viewings} viewings`,
+        `Visitors 24-Nov-26 [PM Log]: ${v24.visitors} visitors · ${v24.viewings} viewings`,
+        `Items (${state.items.length}):`
+      ];
+
+      if (state.items.length === 0) {
+        lines.push("- None logged yet");
+      } else {
+        state.items.forEach((item) => {
+          const keyLabel = item.keys === 1 ? "1 Key" : `${item.keys} Keys`;
+          const statusLabel = item.returned ? `Returned${item.returnedAt ? " at " + item.returnedAt : ""}` : "Open (Not Returned)";
+          const readyLabel = item.readyForEvening ? " · Ready for Evening" : "";
+          lines.push(`- ${item.unit} (${keyLabel}) | By ${item.issuedBy || "-"} → To/With ${item.issuedTo || "-"} | ${item.time} | ${statusLabel}${readyLabel}${item.note ? " — " + item.note : ""}`);
+        });
+      }
+      return lines.join("\n");
+    }
+
+    async function handleSync() {
+      const t = nowTimeString();
+      state.lastSyncedAt = t;
+      saveState();
+      const summary = buildPlainSummary();
+      const box = document.getElementById("summary-text");
+      if (box) box.value = summary;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(summary);
+      } catch (err) {}
+      render();
+      flashMessage(`Synced at ${t}`);
+    }
+
+    function handleUpdate() {
+      const t = nowTimeString();
+      state.lastUpdatedAt = t;
+      saveState();
+      render();
+      const numEl = document.getElementById("ready-count");
+      if (numEl) { numEl.classList.remove("bump"); void numEl.offsetWidth; numEl.classList.add("bump"); }
+      flashMessage(`Updated & saved at ${t}`);
+    }
+
+    async function copySummary() {
+      const box = document.getElementById("summary-text");
+      if (!box) return;
+      box.value = buildPlainSummary();
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(box.value);
+          flashMessage("Summary copied");
+          return;
+        }
+      } catch (err) {}
+      box.select();
+      document.execCommand("copy");
+      flashMessage("Summary selected");
+    }
+
+    function bumpVisitor(dayKey, field) {
+      if (!state.visitors[dayKey]) return;
+      state.visitors[dayKey][field] = (Number(state.visitors[dayKey][field]) || 0) + 1;
+      state.lastUpdatedAt = nowTimeString();
+      saveState();
+      render();
+      flashMessage(`${dayKey} +1 ${field === "visitors" ? "visitor" : "viewing"}`);
+    }
+
+    function setFilter(nextFilter, btnEl) {
+      state.filter = nextFilter;
+      saveState();
+      document.querySelectorAll(".filter-chip").forEach((chip) => {
+        chip.classList.toggle("active", chip.dataset.filter === nextFilter);
+      });
+      renderItems();
+    }
+
+    function applyQuickPreset(by, to, keys) {
+      document.getElementById("f-issued-by").value = by;
+      document.getElementById("f-issued-to").value = to;
+      document.getElementById("f-keys").value = keys;
+      document.getElementById("f-time").value = nowTimeString();
+      document.getElementById("f-status").value = "open";
+      document.getElementById("f-unit").focus();
+    }
+
+    function handleAddEntry(event) {
+      event.preventDefault();
+      const unit = document.getElementById("f-unit").value.trim();
+      if (!unit) return;
+
+      const keys = Math.max(0, parseInt(document.getElementById("f-keys").value, 10) || 0);
+      const issuedBy = document.getElementById("f-issued-by").value.trim() || "Charles";
+      const issuedTo = document.getElementById("f-issued-to").value.trim() || "Unassigned";
+      const time = document.getElementById("f-time").value.trim() || nowTimeString();
+      const status = document.getElementById("f-status").value;
+      const note = document.getElementById("f-note").value.trim();
+      const returned = status === "returned";
+
+      state.items.unshift({
+        id: "item-" + Date.now(),
+        date: state.activeDate,
+        time, unit, keys, issuedBy, issuedTo, returned,
+        returnedAt: returned ? nowTimeString() : "",
+        readyForEvening: false,
+        note: note || `${keys === 1 ? "1 key" : keys + " keys"} ${issuedBy} to ${issuedTo} at ${time}.`
+      });
+
+      state.lastUpdatedAt = nowTimeString();
+      saveState();
+      document.getElementById("f-unit").value = "";
+      document.getElementById("f-note").value = "";
+      document.getElementById("f-time").value = nowTimeString();
+      render();
+      flashMessage(`Added ${unit}`);
+    }
+
+    function toggleReturned(id) {
+      const item = state.items.find((x) => x.id === id);
+      if (!item) return;
+      item.returned = !item.returned;
+      item.returnedAt = item.returned ? nowTimeString() : "";
+      state.lastUpdatedAt = nowTimeString();
+      saveState(); render();
+      flashMessage(item.returned ? `${item.unit} marked returned` : `${item.unit} reopened`);
+    }
+
+    function toggleReady(id) {
+      const item = state.items.find((x) => x.id === id);
+      if (!item) return;
+      item.readyForEvening = !item.readyForEvening;
+      state.lastUpdatedAt = nowTimeString();
+      saveState(); render();
+      flashMessage(item.readyForEvening ? `${item.unit} ready for evening` : `${item.unit} unmarked`);
+    }
+
+    function deleteItem(id) {
+      const item = state.items.find((x) => x.id === id);
+      state.items = state.items.filter((x) => x.id !== id);
+      state.lastUpdatedAt = nowTimeString();
+      saveState(); render();
+      flashMessage(item ? `Removed ${item.unit}` : "Item removed");
+    }
+
+    function escapeHtml(str) {
+      return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function renderItems() {
+      const listEl = document.getElementById("items-list");
+      if (!listEl) return;
+
+      const filtered = state.items.filter((item) => {
+        if (state.filter === "open") return !item.returned;
+        if (state.filter === "returned") return item.returned;
+        if (state.filter === "ready") return item.readyForEvening;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `<div class="empty-state">No entries match this filter for ${escapeHtml(state.activeDate)}.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = filtered.map((item) => {
+        const keyText = item.keys === 1 ? "1 Key" : `${item.keys} Keys`;
+        const statusBadge = item.returned
+          ? `<span class="badge badge-returned">Returned${item.returnedAt ? " · " + escapeHtml(item.returnedAt) : ""}</span>`
+          : `<span class="badge badge-open">Open</span>`;
+        const readyBadge = item.readyForEvening ? `<span class="badge badge-ready">Ready for Evening</span>` : "";
+
+        return `
+          <article class="entry-card ${item.returned ? "" : "open-item"}">
+            <div class="entry-top">
+              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                ${statusBadge}${readyBadge}
+              </div>
+              <span class="entry-meta" style="margin:0;">${escapeHtml(item.time)} (${escapeHtml(item.date)})</span>
+            </div>
+            <div class="entry-meta">By ${escapeHtml(item.issuedBy)} · To/With ${escapeHtml(item.issuedTo)}</div>
+            <h3 class="entry-heading">${escapeHtml(item.unit)} — ${escapeHtml(keyText)}</h3>
+            <p class="entry-note">${escapeHtml(item.note)}</p>
+            <div class="entry-actions">
+              <button type="button" class="btn-green-soft" onclick="toggleReturned('${item.id}')">${item.returned ? "Reopen Key" : "Mark Returned"}</button>
+              <button type="button" class="btn-purple" onclick="toggleReady('${item.id}')">${item.readyForEvening ? "Unmark Ready" : "Ready for Evening"}</button>
+              <button type="button" class="btn-danger-ghost" onclick="deleteItem('${item.id}')">Delete</button>
+            </div>
+          </article>`;
+      }).join("");
+    }
+
+    function render() {
+      const readyCount = state.items.filter((x) => x.readyForEvening).length;
+      const openCount = state.items.filter((x) => !x.returned).length;
+
+      document.getElementById("ready-count").textContent = String(readyCount);
+      document.getElementById("ready-sub").textContent = `Queued for register check · ${openCount} open ${openCount === 1 ? "key" : "keys"} out`;
+
+      const v25 = state.visitors["25-Nov-26"];
+      const v24 = state.visitors["24-Nov-26"];
+      document.getElementById("count-25").textContent = `${v25.visitors} ${v25.visitors === 1 ? "visitor" : "visitors"} · ${v25.viewings} ${v25.viewings === 1 ? "viewing" : "viewings"}`;
+      document.getElementById("count-24").textContent = `${v24.visitors} ${v24.visitors === 1 ? "visitor" : "visitors"} · ${v24.viewings} ${v24.viewings === 1 ? "viewing" : "viewings"}`;
+
+      document.getElementById("sync-status").textContent = `Synced ${state.lastSyncedAt} · Updated ${state.lastUpdatedAt}`;
+
+      document.querySelectorAll(".filter-chip").forEach((chip) => {
+        chip.classList.toggle("active", chip.dataset.filter === state.filter);
+      });
+
+      renderItems();
+      const box = document.getElementById("summary-text");
+      if (box) box.value = buildPlainSummary();
+    }
+
+    /* ---------- CHAT SYNC ENGINE ---------- */
+
+    const APPLIED_BATCH_KEY = "masaken_updater_applied_batches";
+
+    function getAppliedBatches() {
+      try { const raw = localStorage.getItem(APPLIED_BATCH_KEY); return raw ? JSON.parse(raw) : []; }
+      catch (err) { return []; }
+    }
+    function rememberBatch(id) {
+      const arr = getAppliedBatches().filter((x) => x !== id);
+      arr.unshift(id);
+      try { localStorage.setItem(APPLIED_BATCH_KEY, JSON.stringify(arr.slice(0, 60))); } catch (err) {}
+    }
+    function simpleHash(str) {
+      let h = 5381;
+      for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
+      return h.toString(36);
+    }
+    function parseTimeFrom(text) {
+      const m = String(text || "").match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+      return m ? `${m[1].padStart(2, "0")}:${m[2]}` : "";
+    }
+    function normalizeDayKey(input) {
+      const known = Object.keys(state.visitors);
+      const s = String(input || "").trim();
+      if (!s) return null;
+      const direct = known.find((k) => k.toLowerCase() === s.toLowerCase());
+      if (direct) return direct;
+      const m = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
+      if (m) {
+        const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        const candidate = `${String(+m[1]).padStart(2, "0")}-${months[+m[2] - 1]}-${m[3].slice(-2)}`;
+        const hit = known.find((k) => k === candidate);
+        if (hit) return hit;
+      }
+      return null;
+    }
+    function findItemsByUnit(unit) {
+      const u = String(unit || "").trim().toLowerCase();
+      return state.items.filter((it) => String(it.unit || "").trim().toLowerCase() === u);
+    }
+    function oldestOpen(unit) {
+      const open = findItemsByUnit(unit).filter((it) => !it.returned);
+      return open.length ? open[open.length - 1] : null;
+    }
+
+    function applySummaryLine(line) {
+      const body = line.replace(/^[-•]\s*/, "");
+      const m = body.match(/^(.*?)\s*\((\d+)\s*keys?\)\s*\|\s*By\s*(.*?)\s*(?:→|->)\s*(?:To\/With\s*)?(.*?)\s*\|\s*(\d{1,2}:\d{2})\s*\|\s*(.*)$/i);
+      if (!m) return null;
+
+      const unit = m[1].trim();
+      const keys = parseInt(m[2], 10) || 0;
+      const from = m[3].trim();
+      const to = m[4].trim();
+      const time = m[5].trim();
+
+      let statusPart = m[6].trim();
+      let note = "";
+      const sep = statusPart.indexOf(" — ");
+      if (sep > -1) { note = statusPart.slice(sep + 3).trim(); statusPart = statusPart.slice(0, sep).trim(); }
+
+      const returned = /^returned/i.test(statusPart);
+      const ready = /ready for evening/i.test(statusPart);
+      const atMatch = statusPart.match(/returned\s*·?\s*at?\s*(\d{1,2}:\d{2})/i) || (returned ? statusPart.match(/(\d{1,2}:\d{2})/) : null);
+
+      const existing = state.items.find(
+        (it) => String(it.unit).trim().toLowerCase() === unit.toLowerCase() && it.time === time
+      );
+
+      if (existing) {
+        existing.returned = returned;
+        existing.returnedAt = returned ? (atMatch ? atMatch[1] : existing.returnedAt || "") : "";
+        existing.readyForEvening = ready;
+        if (keys) existing.keys = keys;
+        if (from) existing.issuedBy = from;
+        if (to) existing.issuedTo = to;
+        if (note) existing.note = note;
+        return `~ ${unit} updated (${returned ? "returned" : "open"}${ready ? " · ready" : ""})`;
+      }
+
+      state.items.unshift({
+        id: "item-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+        date: state.activeDate, time, unit, keys: keys || 1,
+        issuedBy: from || "Charles", issuedTo: to || "Unassigned",
+        returned, returnedAt: returned ? (atMatch ? atMatch[1] : "") : "",
+        readyForEvening: ready,
+        note: note || `${keys === 1 ? "1 key" : keys + " keys"} ${from} to ${to} at ${time}.`
+      });
+      return `+ ${unit} imported`;
+    }
+
+    function applyDeltaLine(line) {
+      if (/^[-•]\s/.test(line)) return applySummaryLine(line);
+
+      const pipeParts = line.split("|").map((s) => s.trim());
+      const first = pipeParts[0];
+      const m = first.match(/^(\S+)\s+([\s\S]*)$/);
+      if (!m) return null;
+
+      const verb = m[1].toUpperCase();
+      const rest = m[2].trim();
+
+      switch (verb) {
+        case "OUT": case "KEY": case "KEYS": {
+          let unit, keys, from, to, time = "", note = "";
+          if (pipeParts.length >= 3) {
+            unit = rest;
+            keys = Math.max(0, parseInt(pipeParts[1], 10) || 1);
+            const ft = (pipeParts[2] || "").split(/->|→/);
+            from = (ft[0] || "").trim() || "Charles";
+            to = (ft[1] || "").trim() || "Unassigned";
+            time = parseTimeFrom(pipeParts[3] || "") || nowTimeString();
+            note = (pipeParts[4] || "").trim();
+          } else {
+            const t = rest.split(/\s+/);
+            unit = t[0] || "";
+            keys = Math.max(0, parseInt(t[1], 10) || 1);
+            from = t[2] || "Charles";
+            let tail = t.slice(3);
+            const maybeTime = tail[tail.length - 1] || "";
+            if (/^\d{1,2}:\d{2}$/.test(maybeTime)) { time = maybeTime; tail = tail.slice(0, -1); }
+            to = tail.join(" ") || "Unassigned";
+            time = time || nowTimeString();
+          }
+          if (!unit) return null;
+          state.items.unshift({
+            id: "item-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+            date: state.activeDate, time, unit, keys, issuedBy: from, issuedTo: to,
+            returned: false, returnedAt: "", readyForEvening: false,
+            note: note || `${keys === 1 ? "1 key" : keys + " keys"} ${from} to ${to} at ${time}.`
+          });
+          return `+ ${unit} · ${keys} key(s) · ${from} → ${to} @${time}`;
+        }
+
+        case "RET": case "RETURN": case "RETURNED": {
+          const unit = rest.split(/\s+/)[0] || "";
+          const time = parseTimeFrom(rest) || nowTimeString();
+          const item = oldestOpen(unit);
+          if (!item) return `⚠ no open key for ${unit}`;
+          item.returned = true;
+          item.returnedAt = time;
+          return `✓ ${item.unit} returned @${time}`;
+        }
+
+        case "REOPEN": {
+          const unit = rest.split(/\s+/)[0] || "";
+          const matches = findItemsByUnit(unit).filter((it) => it.returned);
+          if (!matches.length) return `⚠ no returned key for ${unit}`;
+          matches.forEach((it) => { it.returned = false; it.returnedAt = ""; });
+          return `↺ ${matches[0].unit} reopened`;
+        }
+
+        case "READY": case "UNREADY": case "NOTREADY": {
+          const unit = rest.split(/\s+/)[0] || "";
+          const matches = findItemsByUnit(unit);
+          if (!matches.length) return `⚠ no entry for ${unit}`;
+          const flag = verb === "READY";
+          matches.forEach((it) => { it.readyForEvening = flag; });
+          return `${flag ? "★" : "☆"} ${matches[0].unit} ${flag ? "ready for evening" : "unmarked"}`;
+        }
+
+        case "DEL": case "DELETE": case "REMOVE": {
+          const unit = rest.split(/\s+/)[0] || "";
+          const matches = findItemsByUnit(unit);
+          if (!matches.length) return `⚠ no entry for ${unit}`;
+          state.items = state.items.filter((it) => !matches.includes(it));
+          return `🗑 ${matches[0].unit} removed`;
+        }
+
+        case "NOTE": {
+          let unit, text;
+          if (pipeParts.length >= 2) { unit = rest; text = (pipeParts[1] || "").trim(); }
+          else { const t = rest.split(/\s+/); unit = t[0] || ""; text = t.slice(1).join(" ").trim(); }
+          const matches = findItemsByUnit(unit);
+          if (!matches.length) return `⚠ no entry for ${unit}`;
+          if (text) matches.forEach((it) => { it.note = text; });
+          return `✎ ${matches[0].unit} note set`;
+        }
+
+        case "VIS": case "VISITOR": case "VISITORS": case "VIEW": case "VIEWING": case "VIEWINGS": {
+          let dayInput, field = /VIEW/i.test(verb) ? "viewings" : "visitors", delta = 1;
+          if (pipeParts.length >= 2) {
+            dayInput = rest;
+            const f = (pipeParts[1] || "").toLowerCase();
+            if (f) field = f.startsWith("view") ? "viewings" : "visitors";
+            const d = parseInt(pipeParts[2] || "1", 10);
+            delta = isNaN(d) ? 1 : d;
+          } else {
+            const t = rest.split(/\s+/);
+            dayInput = t[0] || "";
+            if (t[1] && /^[+-]?\d+$/.test(t[1])) {
+              delta = parseInt(t[1], 10);
+            } else if (t[1]) {
+              field = /view/i.test(t[1]) ? "viewings" : "visitors";
+              const d = parseInt(t[2] || "1", 10);
+              delta = isNaN(d) ? 1 : d;
+            }
+          }
+          const key = normalizeDayKey(dayInput);
+          if (!key) return `⚠ unknown date: ${dayInput || "(none)"}`;
+          const cur = Number(state.visitors[key][field]) || 0;
+          state.visitors[key][field] = Math.max(0, cur + delta);
+          return `✓ ${key} ${field} ${delta > 0 ? "+" : ""}${delta} → ${state.visitors[key][field]}`;
+        }
+
+        default:
+          return null;
+      }
+    }
+
+    function applyDeltaBlock(rawText, force) {
+      const rawLines = String(rawText || "").split(/\r?\n/);
+      let batchId = "";
+      const lines = [];
+
+      rawLines.forEach((raw) => {
+        const line = raw.trim();
+        if (!line) return;
+        if (line.startsWith("#")) {
+          const m = line.match(/^#\s*(?:batch|id)\s*[:=]\s*(.+)$/i);
+          if (m) batchId = m[1].trim();
+          return;
+        }
+        lines.push(line);
+      });
+
+      if (!lines.length) return { ok: false, message: "No commands found in the block." };
+
+      const fingerprint = "b:" + simpleHash(lines.map((l) => l.toLowerCase().replace(/\s+/g, " ")).join("\n"));
+      const id = batchId ? "id:" + batchId.toLowerCase() : fingerprint;
+
+      if (!force && getAppliedBatches().includes(id)) {
+        return { ok: false, duplicate: true, message: "This block has already been applied." };
+      }
+
+      const log = [];
+      let applied = 0;
+
+      lines.forEach((line) => {
+        const res = applyDeltaLine(line);
+        if (!res) { log.push("⚠ skipped: " + line); return; }
+        log.push(res);
+        if (!res.startsWith("⚠")) applied += 1;
+      });
+
+      if (applied > 0) rememberBatch(id);
+      return { ok: true, applied, log };
+    }
+
+    function handleChatSync(force) {
+      const box = document.getElementById("chat-sync-input");
+      const logEl = document.getElementById("chat-sync-log");
+      const text = (box.value || "").trim();
+
+      if (!text) { flashMessage("Paste a block first"); return; }
+
+      const result = applyDeltaBlock(text, !!force);
+
+      if (result.duplicate) {
+        if (logEl) logEl.textContent = "⚠ " + result.message + " Tap “Re-apply (force)” to run it anyway.";
+        flashMessage("Already applied");
+        return;
+      }
+      if (!result.ok) {
+        if (logEl) logEl.textContent = "⚠ " + result.message;
+        flashMessage("Nothing applied");
+        return;
+      }
+
+      state.lastUpdatedAt = nowTimeString();
+      state.lastChatSyncAt = nowTimeString();
+      saveState();
+      render();
+
+      if (logEl) logEl.textContent = result.log.join("  ·  ");
+      flashMessage(`Chat sync applied · ${result.applied} change${result.applied === 1 ? "" : "s"}`);
+    }
+
+    function setupPwaManifest() {
+      const manifest = {
+        name: "The Updater — Masaken Mesaimeer",
+        short_name: "The Updater",
+        start_url: ".",
+        display: "standalone",
+        background_color: "#0b0e14",
+        theme_color: "#0b0e14"
+      };
+      const blob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
+      const link = document.getElementById("pwa-manifest");
+      if (link) link.href = URL.createObjectURL(blob);
+    }
+
+    setInterval(() => {
+      const t = nowTimeString();
+      const clock = document.getElementById("live-clock");
+      if (clock) clock.innerHTML = `<span class="dot"></span>${t}`;
+    }, 30000);
+
+    setupPwaManifest();
+    render();
+  </script>
+</body>
+</html>
